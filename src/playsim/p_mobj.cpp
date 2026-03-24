@@ -133,6 +133,7 @@ CVAR (Bool, cl_missiledecals, true, CVAR_ARCHIVE)
 CVAR (Bool, addrocketexplosion, true, CVAR_ARCHIVE)
 CVAR (Int, cl_pufftype, 0, CVAR_ARCHIVE);
 CVAR (Int, cl_bloodtype, 0, CVAR_ARCHIVE);
+CVAR (Bool, cl_horizontalautoaim, true, CVAR_ARCHIVE)
 
 // CODE --------------------------------------------------------------------
 
@@ -8090,7 +8091,10 @@ AActor *P_SpawnPlayerMissile (AActor *source, double x, double y, double z,
 		{
 			an = angle + DAngle::fromDeg(angdiff[i]);
 			pitch = P_AimLineAttack (source, an, linetargetrange, pLineTarget, vrange, aimflags);
-	
+			if (!cl_horizontalautoaim) 
+			{
+				break;
+			}
 			if (source->player != NULL &&
 				!nofreeaim &&
 				source->Level->IsFreelookAllowed() &&
