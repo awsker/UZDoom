@@ -32,6 +32,7 @@
 
 EXTERN_CVAR(Int, team)
 EXTERN_CVAR(Float, autoaim)
+EXTERN_CVAR(Bool, cl_horizontalautoaim)
 EXTERN_CVAR(Bool, neverswitchonpickup)
 EXTERN_CVAR(Bool, cl_run)
 
@@ -163,6 +164,24 @@ DEFINE_ACTION_FUNCTION(DPlayerMenu, AutoaimChanged)
 	if (DMenu::InMenu)
 	{
 		autoaim = float(val);
+	}
+	return 0;
+}
+
+//=============================================================================
+//
+//
+//
+//=============================================================================
+
+DEFINE_ACTION_FUNCTION(DPlayerMenu, HorizontalAutoaimChanged)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(v);
+	// only allow if the menu is active to prevent abuse.
+	if (DMenu::InMenu)
+	{
+		cl_horizontalautoaim = !!v;
 	}
 	return 0;
 }

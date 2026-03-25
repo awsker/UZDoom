@@ -437,6 +437,7 @@ xx(Team)
 xx(Skin)
 xx(Gender)
 xx(Autoaim)
+xx(HorizontalAutoaim)
 xx(Multiplayer)
 
 xx(CustomizeControls)

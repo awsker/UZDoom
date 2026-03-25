@@ -8091,10 +8091,6 @@ AActor *P_SpawnPlayerMissile (AActor *source, double x, double y, double z,
 		{
 			an = angle + DAngle::fromDeg(angdiff[i]);
 			pitch = P_AimLineAttack (source, an, linetargetrange, pLineTarget, vrange, aimflags);
-			if (!cl_horizontalautoaim) 
-			{
-				break;
-			}
 			if (source->player != NULL &&
 				!nofreeaim &&
 				source->Level->IsFreelookAllowed() &&
@@ -8129,7 +8125,9 @@ AActor *P_SpawnPlayerMissile (AActor *source, double x, double y, double z,
 	if (pMissileActor) *pMissileActor = MissileActor;
 	MissileActor->target = source;
 	P_PlaySpawnSound(MissileActor, source);
-	MissileActor->Angles.Yaw = an;
+	// Use adjusted yaw angle where a line target could be established
+	// unless horizontal autoaim is off in which case use the original aim yaw
+	MissileActor->Angles.Yaw = cl_horizontalautoaim ? an : angle;
 	if (MissileActor->flags3 & (MF3_FLOORHUGGER | MF3_CEILINGHUGGER))
 	{
 		MissileActor->VelFromAngle();

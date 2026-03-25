@@ -649,6 +649,9 @@ msgstr "Never"
 msgid "PLYRMNU_AUTOAIM"
 msgstr "Autoaim"
 
+msgid "PLYRMNU_HORIZONTALAUTOAIM"
+msgstr "Horizontal Autoaim"
+
 msgid "PLYRMNU_ALWAYSRUN"
 msgstr "Always Run"
 

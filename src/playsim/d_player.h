@@ -208,6 +208,10 @@ struct userinfo_t : TMap<FName,FBaseCVar *>
 	{
 		return *static_cast<FFloatCVar *>(*CheckKey(NAME_Autoaim));
 	}
+	bool GetHorizontalAutoaim() const
+	{
+		return *static_cast<FBoolCVar *>(*CheckKey(NAME_HorizontalAutoaim));
+	}
 	const char *GetName(unsigned int charLimit = 0u) const
 	{
 		const char* name = *static_cast<FStringCVar*>(*CheckKey(NAME_Name));
@@ -296,7 +300,7 @@ struct userinfo_t : TMap<FName,FBaseCVar *>
 	int SkinNumChanged(int skinnum);
 	int GenderChanged(const char *gendername);
 	int PlayerClassChanged(const char *classname);
-		uint32_t ColorChanged(const char *colorname);
+	uint32_t ColorChanged(const char *colorname);
 	uint32_t ColorChanged(uint32_t colorval);
 	int ColorSetChanged(int setnum);
 };
