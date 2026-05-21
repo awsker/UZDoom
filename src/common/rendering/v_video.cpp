@@ -80,6 +80,8 @@ CUSTOM_CVAR(Int, vid_maxfps, 500, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 	}
 }
 
+CVAR(Bool, vid_shadersupport, true, CVAR_SYSTEM_ONLY);
+
 CUSTOM_CVAR(Int, vid_preferbackend, BACKEND_DEFAULT, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 {
 	// [SP] This may seem pointless - but I don't want to implement live switching just
@@ -111,6 +113,8 @@ CUSTOM_CVAR(Int, vid_preferbackend, BACKEND_DEFAULT, CVAR_ARCHIVE | CVAR_GLOBALC
 		break;
 	}
 
+	vid_shadersupport = self != BACKEND_OPENGLES;
+
 	static bool notice = false;
 	if (notice) Printf("Changing the video backend requires a restart for " GAMENAME ".\n");
 	else notice = true;
@@ -123,7 +127,7 @@ CUSTOM_CVAR(Int, uiscale, 0, CVAR_ARCHIVE | CVAR_NOINITCALL)
 		self = 0;
 		return;
 	}
-	if (sysCallbacks.OnScreenSizeChanged) 
+	if (sysCallbacks.OnScreenSizeChanged)
 		sysCallbacks.OnScreenSizeChanged();
 	setsizeneeded = true;
 }
@@ -245,7 +249,7 @@ void DCanvas::Resize(int width, int height, bool optimizepitch)
 		{
 			CPU.DataL1LineSize = CPUInfo::AssumedDefaultCacheLineSizeBytes;
 		}
-		
+
 		Pitch = width + CPU.DataL1LineSize;
 	}
 	int bytes_per_pixel = Bgra ? 4 : 1;
@@ -261,7 +265,7 @@ CCMD(clean)
 
 
 void V_UpdateModeSize (int width, int height)
-{	
+{
 	// This calculates the menu scale.
 	// The optimal scale will always be to fit a virtual 640 pixel wide display onto the screen.
 	// Exceptions are made for a few ranges where the available virtual width is > 480.
@@ -276,15 +280,15 @@ void V_UpdateModeSize (int width, int height)
 
 	int w = screen->GetWidth();
 	int h = screen->GetHeight();
-	
+
 	// clamp screen aspect ratio to 17:10, for anything wider the width will be reduced
 	double aspect = (double)w / h;
 	if (aspect > 1.7) w = int(w * 1.7 / aspect);
-	
+
 	int factor;
 	if (w < 640) factor = 1;
 	else if (w >= 1024 && w < 1280) factor = 2;
-	else if (w >= 1600 && w < 1920) factor = 3; 
+	else if (w >= 1600 && w < 1920) factor = 3;
 	else  factor = w / 640;
 
 	if (w < 1360) factor = 1;
@@ -307,7 +311,7 @@ void V_OutputResized (int width, int height)
 	twod->End();
 	setsizeneeded = true;
 	C_NewModeAdjust();
-	if (sysCallbacks.OnScreenSizeChanged) 
+	if (sysCallbacks.OnScreenSizeChanged)
 		sysCallbacks.OnScreenSizeChanged();
 }
 
@@ -333,7 +337,7 @@ bool IVideo::SetResolution ()
 //
 
 void V_InitScreenSize ()
-{ 
+{
 	const char *i;
 	int width, height, bits;
 
@@ -403,7 +407,7 @@ void V_Init2()
 CUSTOM_CVAR (Int, vid_aspect, 0, CVAR_GLOBALCONFIG|CVAR_ARCHIVE)
 {
 	setsizeneeded = true;
-	if (sysCallbacks.OnScreenSizeChanged) 
+	if (sysCallbacks.OnScreenSizeChanged)
 		sysCallbacks.OnScreenSizeChanged();
 }
 
@@ -492,4 +496,3 @@ CUSTOM_CVAR(Float, transsouls, 0.75f, CVAR_ARCHIVE)
 		self = 1.f;
 	}
 }
-

@@ -13,6 +13,7 @@
 class Canvas;
 class Timer;
 class Dropdown;
+class PushButton;
 
 enum class WidgetType
 {
@@ -166,6 +167,8 @@ public:
 	void* GetNativeHandle();
 	int GetNativePixelWidth();
 	int GetNativePixelHeight();
+	virtual double GetPreferredWidth();
+	virtual double GetPreferredHeight();
 
 	// Vulkan support:
 	std::vector<std::string> GetVulkanInstanceExtensions() { return Window()->DispWindow->GetVulkanInstanceExtensions(); }
@@ -214,6 +217,7 @@ private:
 	void OnWindowActivated() override;
 	void OnWindowDeactivated() override;
 	void OnWindowDpiScaleChanged() override;
+	bool OnFileDrop(std::string path) override;
 
 	void NotifySubscribers(const WidgetEvent type);
 
@@ -259,4 +263,5 @@ private:
 	friend class OpenFolderDialog;
 	friend class SaveFileDialog;
 	friend class Dropdown;
+	friend class PushButton;
 };

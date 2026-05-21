@@ -7,6 +7,9 @@ on:
       os:
         required: true
         type: string
+      os_image:
+        required: true
+        type: string
       deps_cmdline:
         required: true
         type: string
@@ -34,11 +37,24 @@ jobs:
   run_build:
     name: ${{ inputs.name }} ${{ inputs.build_type }}
     runs-on: ${{ inputs.os }}
+    container:
+      image: ${{ inputs.os_image }}
+      options: --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined
     defaults:
       run:
         shell: ${{ contains(inputs.name, 'MinGW') && 'msys2 {0}' || 'bash' }}
 
     steps:
+    - name: Prepare Container
+      if: runner.os == 'Linux'
+      run: |
+        # Containers are lean and may not have packages required by early steps
+        elevated() { if [ "$EUID" -ne 0 ]; then sudo "$@"; else "$@"; fi; }
+        if which apt-get; then
+          elevated apt-get -q update
+          elevated apt-get -q install -y curl git sudo tree
+        fi
+
     - name: Checkout
       uses: actions/checkout@v6
       with:
@@ -50,7 +66,7 @@ jobs:
 
     - name: Setup MSYS2
       if: runner.os == 'Windows' && contains(inputs.name, 'MinGW')
-      uses: msys2/setup-msys2@v2 # FIXME: update this
+      uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW64
         update: true
@@ -62,19 +78,32 @@ jobs:
       run: |
         mkdir build && cd build
 
-        function attempt() {
-          echo "$*"
+        attempt() (
+          set +e
+          local cmd="$*"
           local delay=10
-          local i
+          local timeout_sec=600
           for i in {1..4}; do
-            # timeout 10m bash -c "$*" && return 0
-            perl -e "alarm 600; exec @ARGV" bash -c "$*" && return 0
+            echo "Running: $cmd"
+            bash -c "$cmd" &
+            local cmd_pid=$!
+
+            ( sleep 600 ; kill -9 "$cmd_pid" 2>&1 ; ) &
+            local watchdog_pid=$!
+
+            wait "$cmd_pid" 2>&1
+            local exit_code=$?
+
+            kill "$watchdog_pid" 2>&1
+            wait "$watchdog_pid" 2>&1
+
+            [ $exit_code -eq 0 ] && return 0
             echo "Attempt $i failed. Retrying in ${delay}s" >&2
             sleep "${delay}"
             ((delay*=3))
           done
           return 1
-        }
+        )
 
         files=( $EXTRA_FILES )
         for ((i=2;i<=${#files[@]};i+=3)); do
@@ -97,6 +126,7 @@ jobs:
         BUILD_TYPE: ${{ inputs.build_type || 'Release' }}
         BUILD_OPTS: ${{ inputs.build_opts }}
       run: |
+        git config --global --add safe.directory $GITHUB_WORKSPACE
         cmake -B build -S . \
           -DPK3_QUIET_ZIPDIR=ON -G Ninja \
           -DCMAKE_BUILD_TYPE=$BUILD_TYPE $BUILD_OPTS
@@ -104,7 +134,7 @@ jobs:
     - name: Build
       id: build
       run: |
-        export GIT_DESCRIBE="$(git describe --tags --exclude nightly)"
+        export GIT_DESCRIBE="$(git describe --tags --exclude x-*)"
         echo "This will be $GIT_DESCRIBE"
         echo "version=$GIT_DESCRIBE" >> "$GITHUB_OUTPUT"
         cmake --build build --config ${{ inputs.build_type }}
@@ -156,14 +186,16 @@ jobs:
       env:
         NAME: ${{ steps.package.outputs.name }}
       run: |
-
         if [[ ! -d uzdoom.app ]] && [[ -d ${{ inputs.build_type }}/uzdoom.app ]]; then
           mv ${{ inputs.build_type }}/uzdoom.app uzdoom.app
         fi
-        mv package/licenses.zip uzdoom.app/Contents/Resources
 
-        if dsymutil uzdoom.app/Contents/MacOS/uzdoom; then
-          mv uzdoom.app/Contents/MacOS/uzdoom.dSYM uzdoom.app/Contents/Resources/
+        app=UZDoom.app
+        mv uzdoom.app ${app}
+        mv package/licenses.zip ${app}/Contents/Resources
+
+        if dsymutil ${app}/Contents/MacOS/uzdoom; then
+          mv ${app}/Contents/MacOS/uzdoom.dSYM ${app}/Contents/Resources/
         fi
 
         SIGN_ID="-"
@@ -181,26 +213,28 @@ jobs:
           SIGN_OPTS="--options=runtime"
         fi
 
-        mkdir -p uzdoom.app/Contents/Frameworks
-        cp $(brew --prefix molten-vk)/lib/libMoltenVK.dylib uzdoom.app/Contents/Frameworks/
+        mkdir -p ${app}/Contents/Frameworks
+        cp $(brew --prefix molten-vk)/lib/libMoltenVK.dylib ${app}/Contents/Frameworks/
         dylibbundler -ns -of -cd -b \
-          -x ./uzdoom.app/Contents/MacOS/uzdoom \
-          -d ./uzdoom.app/Contents/Frameworks \
+          -x ./${app}/Contents/MacOS/uzdoom \
+          -d ./${app}/Contents/Frameworks \
           -p @executable_path/../Frameworks/
 
-        xattr -cr uzdoom.app
+        xattr -cr ${app}
 
-        find uzdoom.app/Contents/Frameworks -type f -name "*.dylib" -print0 | while IFS= read -r -d '' file; do
+        find ${app}/Contents/Frameworks -type f -name "*.dylib" -print0 | while IFS= read -r -d '' file; do
           codesign --remove-signature "$file"
           codesign --force $SIGN_OPTS -s "$SIGN_ID" "$file"
         done
 
-        /usr/bin/codesign --force --deep $SIGN_OPTS -s "$SIGN_ID" uzdoom.app -v
+        /usr/bin/codesign --force --deep $SIGN_OPTS -s "$SIGN_ID" ${app} -v
 
-        cp -r uzdoom.app package
+        $(brew --prefix python)/bin/python3 -m venv venv
+        source venv/bin/activate
+        pip install dmgbuild
+        dmgbuild -s ../tools/dmgbuild-settings.py -D app=${app} "UZDoom" UZDoom.dmg
+        mv UZDoom.dmg package
 
-        cd package
-        7z a -sdel -r "${NAME}.zip" *
         cd ..
 
     - name: Package Linux

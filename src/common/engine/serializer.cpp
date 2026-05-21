@@ -197,7 +197,7 @@ FWriterBuffer FSerializer::CloseAndGetBuffer() {
 }
 
 void FSerializer::Close()
-{	
+{
 	if (w == nullptr && r == nullptr) return;	// double close? This should skip the I_Error at the bottom.
 
 	if (w != nullptr)
@@ -806,7 +806,7 @@ void FSerializer::ReadObjectsFrom(TArray<TObjPtr<DObject*>>& from)
 						{
 							r->mObjects.Clamp(size);	// close all inner objects.
 							// In case something in here throws an error, let's continue and deal with it later.
-							Printf(PRINT_NONOTIFY | PRINT_BOLD, TEXTCOLOR_RED "'%s'\n while restoring %s\n", err.GetMessage(), obj != nullptr ? obj->GetClass()->TypeName.GetChars() : "invalid object");
+							Printf(static_cast<PrintFlag>(PRINT_NONOTIFY|PRINT_BOLD), TEXTCOLOR_RED "'%s'\n while restoring %s\n", err.GetMessage(), obj != nullptr ? obj->GetClass()->TypeName.GetChars() : "invalid object");
 							++mErrors;
 						}
 					}
@@ -900,7 +900,7 @@ void FSerializer::ReadObjects(bool hubtravel)
 							{
 								r->mObjects.Clamp(size);	// close all inner objects.
 								// In case something in here throws an error, let's continue and deal with it later.
-								Printf(PRINT_NONOTIFY | PRINT_BOLD, TEXTCOLOR_RED "'%s'\n while restoring %s\n", err.GetMessage(), obj ? obj->GetClass()->TypeName.GetChars() : "invalid object");
+								Printf(static_cast<PrintFlag>(PRINT_NONOTIFY|PRINT_BOLD), TEXTCOLOR_RED "'%s'\n while restoring %s\n", err.GetMessage(), obj ? obj->GetClass()->TypeName.GetChars() : "invalid object");
 								mErrors++;
 							}
 						}
@@ -993,7 +993,7 @@ FCompressedBuffer FSerializer::GetCompressedOutput(TArray<TObjPtr<DObject*>>* ob
 	}
 
 	err = deflate(&stream, Z_FINISH);
-	if (err != Z_STREAM_END) 
+	if (err != Z_STREAM_END)
 	{
 		deflateEnd(&stream);
 		goto error;
@@ -1435,14 +1435,14 @@ FSerializer& Serialize(FSerializer& arc, const char* key, FTranslationID& value,
 	int v = value.index();
 	int* defv = (int*)defval;
 	Serialize(arc, key, v, defv);
-	
+
 	if (arc.isReading())
 	{
 		// allow games to alter the loaded value to handle dynamic lists.
 		if (sysCallbacks.RemapTranslation) value = sysCallbacks.RemapTranslation(FTranslationID::fromInt(v));
 		else value = FTranslationID::fromInt(v);
 	}
-		
+
 	return arc;
 }
 

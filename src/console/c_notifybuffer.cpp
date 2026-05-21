@@ -23,13 +23,14 @@
 */
 
 #include "c_console.h"
-#include "vm.h"
-#include "gamestate.h"
 #include "c_cvars.h"
+#include "c_notifybufferbase.h"
+#include "gamestate.h"
+#include "i_time.h"
+#include "printf.h"
 #include "sbar.h"
 #include "v_video.h"
-#include "i_time.h"
-#include "c_notifybufferbase.h"
+#include "vm.h"
 
 struct FNotifyBuffer : public FNotifyBufferBase
 {
@@ -138,7 +139,7 @@ void FNotifyBuffer::Draw()
 	bool center = (con_centernotify != 0.f);
 	int line, lineadv, color, j;
 	bool canskip;
-	
+
 	FFont* font = generic_ui ? NewSmallFont : AlternativeSmallFont;
 
 	line = Top + font->GetDisplacement();

@@ -16,20 +16,9 @@ if( COMMAND cmake_policy )
 	endif()
 endif()
 
-if (LIBVPX_VCPKG)
-	list(APPEND VCPKG_MANIFEST_FEATURES "vcpkg-libvpx")
-endif()
-
-if (OPENAL_SOFT_VCPKG)
-	list(APPEND VCPKG_MANIFEST_FEATURES "vcpkg-openal-soft")
-endif()
-
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR (NOT CMAKE_SYSTEM_NAME AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows"))
-	# Force static triplet on Windows
-	set(VCPKG_TARGET_TRIPLET "x64-windows-static")
-endif()
-
 project(UZDoom)
+
+set(ABSL_BUILD_TESTING OFF) # don't build/run abseil tests
 
 # make all targets use LTO - want to do this early in the cmake to ensure it applies to any targets
 option( FORCE_NO_LTO "Turn off LTO even if it would be possible to use it." NO )
@@ -44,18 +33,6 @@ if(NOT FORCE_NO_LTO)
 	else()
 		message(STATUS "Not using LTO because unsupported: ${ipo_error}")
 	endif()
-endif()
-
-if (WIN32 AND VCPKG_TOOLCHAIN)
-	option(LIBVPX_VCPKG "Use libvpx from vcpkg" OFF)
-endif()
-
-if (VCPKG_TOOLCHAIN)
-	option(OPENAL_SOFT_VCPKG "Use OpenAL from vcpkg" OFF)
-endif()
-
-if (NOT VCPKG_TOOLCHAIN)
-	set(VCPKG_MANIFEST_FEATURES)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
@@ -172,22 +149,16 @@ function( add_pk3 PK3_NAME )
 		COMPONENT "Game resources")
 endfunction()
 
-macro( generate_language_files target destination )
+macro( generate_language_files target destination identifier )
 	# right now, this dumps temp files into the source tree and deletes them after build
 	# This should be re-worked to dump stuff into the build tree instead
 	set(lang_script "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/Translation/scripts/compile.py")
 	set(lang_dst "${CMAKE_CURRENT_SOURCE_DIR}/${destination}")
 	set(lang_target "${target}_${destination}")
 
-	set(lang_sources_list "")
-	set(sources ${ARGN})
-	foreach( source_item ${sources} )
-		list(APPEND lang_sources_list "${CMAKE_CURRENT_SOURCE_DIR}/../libraries/Translation/${source_item}")
-	endforeach()
-
 	string( REGEX REPLACE "[^a-zA-Z0-9]" "_" lang_target ${lang_target} )
 
-	add_custom_target(${lang_target} COMMAND Python3::Interpreter -B -E -s "${lang_script}" ${lang_sources_list} "${lang_dst}")
+	add_custom_target(${lang_target} COMMAND Python3::Interpreter -B -E -s "${lang_script}" --recipe ${identifier} --output "${lang_dst}")
 	add_dependencies(${target} ${lang_target})
 	add_custom_command(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND} -E remove "${lang_dst}")
 endmacro()
@@ -275,9 +246,6 @@ find_package( VPX )
 if (NOT FORCE_INTERNAL_CPPDAP)
 	find_package( cppdap CONFIG )
 endif()
-if (NOT FORCE_INTERNAL_ZMUSIC)
-	find_package( ZMusic )
-endif()
 
 include( TargetArch )
 
@@ -293,13 +261,6 @@ if( APPLE )
 else()
 	option (HAVE_GLES2 "Enable GLES2 support" ON)
 endif()
-
-# no, we're not using external asmjit for now, we made too many modifications to our's.
-# if the asmjit author uses our changes then we'll update this.
-
-#if( ${HAVE_VM_JIT} )
-#	find_package( asmjit )
-#endif()
 
 if( MSVC )
 	# Eliminate unreferenced functions and data
@@ -338,6 +299,10 @@ if( MSVC )
 
 	# Disable warnings for unsecure CRT functions from VC8+
 	set( ALL_C_FLAGS "${ALL_C_FLAGS} /DUNICODE /D_UNICODE /D_WIN32_WINNT=0x0600 /D_CRT_SECURE_NO_DEPRECATE /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS" )
+
+	if( WITH_ASAN )
+		set( ALL_C_FLAGS "${ALL_C_FLAGS} /fsanitize=address" )
+	endif()
 
 	string(REPLACE "/Ob1 " "/Ob2 " CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_CXX_FLAGS_RELWITHDEBINFO} )
 else()
@@ -402,11 +367,7 @@ set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${REL_C_F
 set( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${DEB_C_FLAGS} -D_DEBUG" )
 
 option(FORCE_INTERNAL_BZIP2 "Use internal bzip2")
-option(FORCE_INTERNAL_ZMUSIC "Use internal zmusic" ON)
-option(FORCE_INTERNAL_ASMJIT "Use internal asmjit" ON)
 option(FORCE_INTERNAL_CPPDAP "Use internal cppdap" ON)
-
-mark_as_advanced( FORCE_INTERNAL_ASMJIT )
 
 if (HAVE_VULKAN)
 	add_subdirectory( libraries/ZVulkan )
@@ -421,11 +382,6 @@ set(ZWIDGET_BUILD_EXAMPLE OFF CACHE INTERNAL "" FORCE)
 add_subdirectory( libraries/ZWidget )
 
 add_subdirectory( libraries/webp )
-
-add_subdirectory( libraries/discordrpc EXCLUDE_FROM_ALL )
-set( DRPC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries/discordrpc/include" )
-set( DRPC_LIBRARIES discord-rpc )
-set( DRPC_LIBRARY discord-rpc )
 
 if( HAVE_VM_JIT AND UNIX )
 	check_symbol_exists( "backtrace" "execinfo.h" HAVE_BACKTRACE )
@@ -442,16 +398,10 @@ if( HAVE_VM_JIT AND UNIX )
 endif( HAVE_VM_JIT AND UNIX )
 
 if( ${HAVE_VM_JIT} )
-	if( ASMJIT_FOUND AND NOT FORCE_INTERNAL_ASMJIT )
-		message( STATUS "Using system asmjit, includes found at ${ASMJIT_INCLUDE_DIR}" )
-	else()
-		message( STATUS "Using internal asmjit" )
-		set( SKIP_INSTALL_ALL TRUE ) # Avoid installing asmjit alongside zdoom
-		add_subdirectory( libraries/asmjit )
-		set( ASMJIT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libraries/asmjit )
-		set( ASMJIT_LIBRARIES asmjit )
-		set( ASMJIT_LIBRARY asmjit )
-	endif()
+	set( SKIP_INSTALL_ALL TRUE ) # Avoid installing asmjit alongside zdoom
+	add_subdirectory( libraries/asmjit )
+	set( ASMJIT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libraries/asmjit )
+	set( ASMJIT_LIBRARIES asmjit )
 endif()
 
 if( BZIP2_FOUND AND NOT FORCE_INTERNAL_BZIP2 )
@@ -476,18 +426,11 @@ else()
 endif()
 
 # ZMUSIC
-if( ZMUSIC_FOUND AND NOT FORCE_INTERNAL_ZMUSIC )
-	message( STATUS "Using system zmusic library, includes found at ${ZMUSIC_INCLUDE_DIR}" )
-	set( ZMUSIC_SYSTEM_INSTALL TRUE )
-else()
-	message( STATUS "Using internal zmusic library" )
-	set( BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE )
-	add_subdirectory( libraries/ZMusic )
-	set( ZMUSIC_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libraries/zmusic" )
-	set( ZMUSIC_INCLUDE_DIR ${ZMUSIC_ROOT_PATH}/include )
-	set( ZMUSIC_LIBRARIES zmusic )
-	set( ZMUSIC_FOUND TRUE )
-endif()
+set( BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE )
+add_subdirectory( libraries/ZMusic )
+set( ZMUSIC_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libraries/zmusic" )
+set( ZMUSIC_INCLUDE_DIR ${ZMUSIC_ROOT_PATH}/include )
+set( ZMUSIC_LIBRARIES zmusic )
 
 set( LZMA_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries/lzma/C" )
 

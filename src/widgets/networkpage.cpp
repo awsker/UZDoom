@@ -15,22 +15,20 @@
 **
 */
 
-
-#include "networkpage.h"
-#include "launcherwindow.h"
-#include "gstrings.h"
-#include "c_cvars.h"
-#include "i_net.h"
-#include "i_interface.h"
-#include "widgets/themedata.h"
 #include <zwidget/core/resourcedata.h>
-#include <zwidget/widgets/listview/listview.h>
-#include <zwidget/widgets/textlabel/textlabel.h>
 #include <zwidget/widgets/checkboxlabel/checkboxlabel.h>
-#include <zwidget/widgets/lineedit/lineedit.h>
-#include <zwidget/widgets/pushbutton/pushbutton.h>
-#include <zwidget/widgets/tabwidget/tabwidget.h>
 #include <zwidget/widgets/dropdown/dropdown.h>
+#include <zwidget/widgets/lineedit/lineedit.h>
+#include <zwidget/widgets/listview/listview.h>
+#include <zwidget/widgets/tabwidget/tabwidget.h>
+#include <zwidget/widgets/textlabel/textlabel.h>
+
+#include "gstrings.h"
+#include "i_interface.h"
+#include "i_net.h"
+#include "launcherwindow.h"
+#include "networkpage.h"
+#include "widgets/themedata.h"
 
 constexpr double EditHeight = 24.0;
 
@@ -364,7 +362,7 @@ void HostSubPage::OnGeometryChanged()
 	AltDeathmatchCheckbox->SetFrameGeometry(0.0, y, wSize, AltDeathmatchCheckbox->GetPreferredHeight());
 
 	y = 0.0;
-	
+
 	TicDupLabel->SetFrameGeometry(w - DropdownSize, y, DropdownSize, TicDupLabel->GetPreferredHeight());
 	y += TicDupLabel->GetPreferredHeight();
 	TicDupDropdown->SetFrameGeometry(w - DropdownSize, y, DropdownSize, TicDupDropdown->GetPreferredHeight());

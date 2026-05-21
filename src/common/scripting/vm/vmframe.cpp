@@ -24,6 +24,7 @@
 
 #include <new>
 #include "dobject.h"
+#include "printf.h"
 #include "v_text.h"
 #include "stats.h"
 #include "c_dispatch.h"
@@ -328,7 +329,7 @@ int VMScriptFunction::FirstScriptCall(VMFunction *func, VMValue *params, int num
 	{
 		ThrowAbortException(X_OTHER, "attempt to call abstract function %s.", func->PrintableName);
 	}
-	
+
 	static_cast<VMScriptFunction*>(func)->JitCompile();
 
 	return func->ScriptCall(func, params, numparams, ret, numret);
@@ -697,7 +698,7 @@ int VMCall(VMFunction *func, VMValue *params, int numparams, VMReturn *results, 
 #if 0
 	try
 #endif
-	{	
+	{
 		if (func->VarFlags & VARF_Native)
 		{
 			return static_cast<VMNativeFunction *>(func)->NativeCall(VM_INVOKE(params, numparams, results, numresults, func->RegTypes));
@@ -827,7 +828,7 @@ void CVMAbortException::MaybePrintMessage()
 	auto m = GetMessage();
 	if (m != nullptr)
 	{
-		Printf(PRINT_NONOTIFY | PRINT_BOLD, TEXTCOLOR_RED "%s\n", m);
+		Printf(static_cast<PrintFlag>(PRINT_NONOTIFY | PRINT_BOLD), TEXTCOLOR_RED "%s\n", m);
 		SetMessage("");
 	}
 }
@@ -927,4 +928,3 @@ CCMD(vmengine)
 	}
 	Printf("Usage: vmengine <default|checked|unchecked>\n");
 }
-

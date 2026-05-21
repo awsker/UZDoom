@@ -22,13 +22,9 @@
 **
 */
 
-#ifndef __VERSION_H__
-#define __VERSION_H__
+#pragma once
 
-const char *GetGitDescription();
-const char *GetGitHash();
-const char *GetGitTime();
-const char *GetVersionString();
+#include "gitinfo.h"
 
 /** Lots of different version numbers **/
 
@@ -51,7 +47,7 @@ const char *GetVersionString();
 // Version stored in the ini's [LastRun] section.
 // Bump it if you made some configuration change that you want to
 // be able to migrate in FGameConfigFile::DoGlobalSetup().
-#define LASTRUNVERSION "230"
+#define LASTRUNVERSION "231"
 
 // Protocol version used in demos.
 // Bump it if you change existing DEM_ commands or add new ones.
@@ -84,7 +80,7 @@ const char *GetVersionString();
 #define ALLOWLOADIN "LZDOOM"
 
 #ifndef LOAD_GZDOOM_4142_SAVES
-    #define LOAD_GZDOOM_4142_SAVES 1
+	#define LOAD_GZDOOM_4142_SAVES 1
 #endif
 
 #define BASEWAD "uzdoom.pk3"
@@ -99,8 +95,7 @@ const char *GetVersionString();
 #define GAMENAMELOWERCASE "uzdoom"
 #define APPID "org.zdoom.UZDoom"
 #define QUERYIWADDEFAULT true
-#define FORUM_URL "http://forum.zdoom.org/"
-#define BUGS_FORUM_URL	"http://forum.zdoom.org/viewforum.php?f=2"
+#define BUGS_URL "https://github.com/UZDoom/UZDoom/issues"
 // For QUERYIWADDEFAULT: Set to 'true' to always show dialog box on startup by default, 'false' to disable.
 // Should set to 'false' for standalone games, and set to 'true' for regular source port forks that are meant to run any game.
 
@@ -117,4 +112,57 @@ const int SAVEPICHEIGHT = 162;
 const int VID_MIN_WIDTH = 320;
 const int VID_MIN_HEIGHT = 200;
 
-#endif //__VERSION_H__
+//==========================================================================
+//
+// <Tag>-<Distance>-g<commit>
+//
+//==========================================================================
+
+constexpr inline const char *GetVersionString()
+{
+	return (GIT_DESCRIPTION[0] == '\0')? VERSIONSTR: GIT_DESCRIPTION;
+}
+
+//==========================================================================
+//
+// <commit>
+//
+//==========================================================================
+
+constexpr inline const char *GetGitHash()
+{
+	return GIT_HASH;
+}
+
+//==========================================================================
+//
+// ISO 8601
+//
+//==========================================================================
+
+constexpr inline const char *GetGitTime()
+{
+	return GIT_TIME;
+}
+
+//==========================================================================
+//
+// Closest git tag
+//
+//==========================================================================
+
+constexpr inline const char *GetGitTag()
+{
+	return GIT_TAG;
+}
+
+//==========================================================================
+//
+// Distance to closest git tag
+//
+//==========================================================================
+
+constexpr inline int GetGitDistance()
+{
+	return GIT_DISTANCE;
+}

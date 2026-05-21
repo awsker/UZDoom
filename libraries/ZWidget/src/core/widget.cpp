@@ -409,6 +409,16 @@ void Widget::Paint(Canvas* canvas)
 	canvas->popClip();
 }
 
+double Widget::GetPreferredWidth()
+{
+	return GetNoncontentLeft() + GetNoncontentRight();
+}
+
+double Widget::GetPreferredHeight()
+{
+	return GetNoncontentTop() + GetNoncontentBottom();
+}
+
 void Widget::OnPaintFrame(Canvas* canvas)
 {
 	WidgetStyle* style = WidgetTheme::GetTheme()->GetStyle(StyleClass);
@@ -904,6 +914,11 @@ void Widget::OnWindowDeactivated()
 
 void Widget::OnWindowDpiScaleChanged()
 {
+}
+
+bool Widget::OnFileDrop(std::string path)
+{
+	return (FocusWidget && FocusWidget->OnFileDrop(path)) || (ParentObj && ParentObj->OnFileDrop(path));
 }
 
 double Widget::GetDpiScale() const
