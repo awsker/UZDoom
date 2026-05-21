@@ -8085,9 +8085,10 @@ AActor *P_SpawnPlayerMissile (AActor *source, double x, double y, double z,
 	FTranslatedLineTarget scratch;
 	AActor *defaultobject = GetDefaultByType(type);
 	DAngle vrange = DAngle::fromDeg(nofreeaim ? 35. : 0.);
-
+	bool freelook = source->Angles.Pitch != nullAngle;
 	if (!pLineTarget) pLineTarget = &scratch;
-	if (!(aimflags & ALF_NOWEAPONCHECK) && source->player && source->player->ReadyWeapon && ((source->player->ReadyWeapon->IntVar(NAME_WeaponFlags) & WIF_NOAUTOAIM) || noautoaim))
+	if (freelook  || !(aimflags & ALF_NOWEAPONCHECK) && source->player && source->player->ReadyWeapon &&
+	    ((source->player->ReadyWeapon->IntVar(NAME_WeaponFlags) & WIF_NOAUTOAIM) || noautoaim))
 	{
 		// Keep exactly the same angle and pitch as the player's own aim
 		an = angle;
